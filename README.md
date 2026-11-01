@@ -1,6 +1,6 @@
 # Avengers: Doomsday ön satış bildirimi
 
-World Cinezone sitesini 20-30 saniyede bir kontrol eder. Avengers: Doomsday göründüğü an
+World Cinezone ana sayfasını yaklaşık dakikada bir kontrol eder. Avengers: Doomsday göründüğü an
 Telegram'a posterli mesaj ve ntfy'a acil bildirim gönderir; Telegram botuna bir şey yazılana
 kadar her dakika hatırlatır.
 

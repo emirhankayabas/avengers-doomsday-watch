@@ -32,14 +32,11 @@ const FILM_NAME = "AVENGERS: DOOMSDAY";
 const RE = /avengers|doomsday|k[iı]yamet/gi;
 
 const BASE = "https://www.worldcinezone.com.tr";
-const PAGES = [
-  { name: "Ana sayfa", url: `${BASE}/` },
-  { name: "Gelecek Program", url: `${BASE}/gelecek-program` },
-  { name: "Vizyondakiler", url: `${BASE}/vizyondakiler` },
-];
+// Ön satıştaki filmler ana sayfada görünüyor; tek sayfa yeterli
+const PAGES = [{ name: "Ana sayfa", url: `${BASE}/` }];
 
-const MIN_WAIT = 20000; // kontrol aralığı: 20-30 sn
-const MAX_WAIT = 30000;
+const MIN_WAIT = 55000; // kontrol aralığı: ~1 dk (55-65 sn)
+const MAX_WAIT = 65000;
 const REMIND_EVERY = 60 * 1000; // hatırlatma mesajı: 1 dk
 const REMIND_MAX = 2 * 60 * 60 * 1000; // en fazla 2 saat
 
@@ -182,7 +179,7 @@ async function alarm(msg, poster, filmUrl) {
   console.log(now(), "2 saat doldu, hatırlatmalar durdu.");
 }
 
-console.log(`${FILM_NAME} takip ediliyor... (${MIN_WAIT / 1000}-${MAX_WAIT / 1000} sn'de bir kontrol)`);
+console.log(`${FILM_NAME} takip ediliyor... (yaklaşık dakikada bir kontrol)`);
 
 while (true) {
   try {

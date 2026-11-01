@@ -316,7 +316,7 @@
         setScreen("off", "Takip kapalı", "Workflow devre dışı. GitHub'da Actions sekmesinden tekrar açabilirsin.");
       } else if (live) {
         const since = fmtSince(Date.now() - new Date(live.run_started_at));
-        setScreen("running", "Takipte", `Site 20-30 saniyede bir kontrol ediliyor. ${since ? `Bu çalışma ${since} açık.` : "Bu çalışma yeni başladı."}`);
+        setScreen("running", "Takipte", `Site dakikada bir kontrol ediliyor. ${since ? `Bu çalışma ${since} açık.` : "Bu çalışma yeni başladı."}`);
       } else if (queued) {
         setScreen("running", "Sırada", "Yeni çalışma birazdan başlayacak.");
       } else if (last && seatClass(last) === "failure") {
