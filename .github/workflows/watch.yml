@@ -39,6 +39,7 @@ jobs:
           TG_TOKEN: ${{ secrets.TG_TOKEN }}
           TG_CHAT: ${{ secrets.TG_CHAT }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          TZ: Europe/Istanbul
           MAX_RUNTIME_MIN: "220"   # ~3.5 saat kontrol + bulunursa 2 saate kadar hatırlatma
         run: node avengers-watch.mjs
 
