@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Doomsday Bekçisi</title>
+<meta name="theme-color" content="#1c0d13">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@600;800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --velvet: #1c0d13;
+    --curtain: #2c121c;
+    --seat: #5c1a29;
+    --seat-edge: #7a2537;
+    --brass: #d9b36c;
+    --screen: #f2ece0;
+    --ink: #efe3e1;
+    --muted: #b49ca2;
+    --ok: #9cc7a4;
+    --err: #ef7b67;
+    --line: rgba(242, 236, 224, .10);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background:
+      radial-gradient(120% 60% at 50% -10%, #3b1624 0%, transparent 60%),
+      var(--velvet);
+    color: var(--ink);
+    font: 400 16px/1.55 "Instrument Sans", system-ui, sans-serif;
+  }
+  main { max-width: 560px; margin: 0 auto; padding: 28px 16px 48px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  h1 {
+    margin: 0;
+    font: 800 30px/1 "Big Shoulders Display", sans-serif;
+    letter-spacing: .02em;
+    color: var(--screen);
+  }
+  .refresh {
+    appearance: none; border: 1px solid var(--line); background: transparent;
+    color: var(--muted); font: 500 14px "Instrument Sans", sans-serif;
+    padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  }
+  .refresh:hover { color: var(--ink); border-color: rgba(242,236,224,.25); }
+  .refresh:focus-visible, a:focus-visible { outline: 2px solid var(--brass); outline-offset: 3px; }
+
+  /* Perde */
+  .theatre { margin-top: 28px; perspective: 700px; }
+  .screen {
+    position: relative;
+    padding: 34px 24px 30px;
+    text-align: center;
+    color: #2a1018;
+    background: var(--screen);
+    border-radius: 50% 50% 10px 10px / 18px 18px 10px 10px;
+    transform: rotateX(8deg);
+    transform-origin: bottom center;
+    box-shadow: 0 0 0 1px rgba(255,255,255,.4) inset, 0 30px 80px -10px rgba(242,236,224,.28);
+  }
+  .screen[data-state="running"] { animation: projector 4s ease-in-out infinite; }
+  .screen[data-state="found"] { background: var(--brass); box-shadow: 0 30px 90px -6px rgba(217,179,108,.55); }
+  .screen[data-state="error"], .screen[data-state="off"] { background: #d9cfc6; box-shadow: none; }
+  @keyframes projector {
+    0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,.4) inset, 0 30px 80px -10px rgba(242,236,224,.22); }
+    50% { box-shadow: 0 0 0 1px rgba(255,255,255,.4) inset, 0 30px 90px -4px rgba(242,236,224,.40); }
+  }
+  .status {
+    margin: 0;
+    font: 800 clamp(40px, 12vw, 58px)/.95 "Big Shoulders Display", sans-serif;
+    letter-spacing: .01em;
+  }
+  .detail { margin: 10px 0 0; font-size: 15px; color: rgba(42,16,24,.72); }
+  .cta {
+    display: inline-block; margin-top: 16px; padding: 11px 20px; border-radius: 999px;
+    background: #2a1018; color: var(--brass); text-decoration: none; font-weight: 600;
+  }
+  .beam {
+    height: 34px; margin: 0 12%;
+    background: linear-gradient(to bottom, rgba(242,236,224,.10), transparent);
+    clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
+  }
+
+  /* Koltuklar */
+  .seats { margin-top: 6px; display: grid; gap: 10px; }
+  .row { display: grid; grid-template-columns: 18px repeat(10, 1fr) 18px; gap: 6px; align-items: center; }
+  .row-label { font: 600 12px "Instrument Sans", sans-serif; color: var(--muted); text-align: center; }
+  .seat {
+    display: block; aspect-ratio: 1 / .9;
+    border-radius: 7px 7px 4px 4px;
+    background: var(--seat);
+    border-bottom: 3px solid var(--seat-edge);
+    text-decoration: none;
+  }
+  .seat.empty { background: transparent; border: 1px dashed rgba(242,236,224,.12); }
+  .seat.success { background: var(--ok); border-bottom-color: #6f9c78; }
+  .seat.failure { background: var(--err); border-bottom-color: #c2533f; }
+  .seat.cancelled { background: #4a2a33; border-bottom-color: #5a333e; }
+  .seat.queued { background: transparent; border: 2px solid var(--brass); }
+  .seat.in_progress { background: var(--brass); border-bottom-color: #b08a45; animation: blink 1.6s ease-in-out infinite; }
+  .seat.found { background: var(--screen); border-bottom-color: var(--brass); }
+  @keyframes blink { 50% { opacity: .55; } }
+  .seat:not(.empty):hover { transform: translateY(-2px); }
+  .seat { transition: transform .15s ease; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin: 16px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+  .legend li { display: flex; align-items: center; gap: 6px; }
+  .legend i { width: 11px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  /* Liste */
+  h2 { margin: 40px 0 10px; font: 600 15px "Instrument Sans", sans-serif; color: var(--muted); }
+  .runs { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .runs li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 13px 2px; border-bottom: 1px solid var(--line); }
+  .run-title { font-weight: 600; }
+  .run-meta { grid-column: 1; font-size: 14px; color: var(--muted); }
+  .runs a { grid-row: 1 / span 2; grid-column: 2; align-self: center; color: var(--brass); text-decoration: none; font-weight: 500; font-size: 14px; }
+  .runs a:hover { text-decoration: underline; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
+
+  footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
+  footer a { color: var(--muted); }
+  .note { margin-top: 14px; padding: 12px 14px; border-radius: 10px; background: var(--curtain); font-size: 14px; color: var(--ink); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .screen[data-state="running"], .seat.in_progress { animation: none; }
+    .seat { transition: none; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Doomsday Bekçisi</h1>
+    <button class="refresh" id="refresh" type="button">Yenile</button>
+  </header>
+
+  <section class="theatre" aria-live="polite">
+    <div class="screen" id="screen" data-state="loading">
+      <p class="status" id="status">Yükleniyor</p>
+      <p class="detail" id="detail">World Cinezone takibinin durumu alınıyor.</p>
+      <div id="cta"></div>
+    </div>
+    <div class="beam" aria-hidden="true"></div>
+  </section>
+
+  <div class="seats" id="seats" aria-label="Son çalışmalar, her koltuk bir çalışma"></div>
+  <ul class="legend">
+    <li><i style="background:var(--brass)"></i>Şu an çalışıyor</li>
+    <li><i style="border:2px solid var(--brass)"></i>Sırada</li>
+    <li><i style="background:var(--ok)"></i>Sorunsuz bitti</li>
+    <li><i style="background:var(--err)"></i>Hata</li>
+    <li><i style="background:#4a2a33"></i>Atlandı</li>
+  </ul>
+
+  <h2>Son çalışmalar</h2>
+  <ul class="runs" id="runs"></ul>
+  <div id="note"></div>
+
+  <footer>
+    <span id="updated">Sayfa 4 dakikada bir kendini yeniler.</span>
+    <span id="repoLink"></span>
+  </footer>
+</main>
+
+<script>
+(() => {
+  const WORKFLOW = "watch.yml";
+  const REFRESH_MS = 4 * 60 * 1000;
+
+  // github.io/<repo> adresinden sahibi ve repoyu bul
+  const params = new URLSearchParams(location.search);
+  let owner, repo;
+  if (params.get("repo")) [owner, repo] = params.get("repo").split("/");
+  else if (location.hostname.endsWith(".github.io")) {
+    owner = location.hostname.split(".")[0];
+    repo = location.pathname.split("/").filter(Boolean)[0];
+  }
+  const API = `https://api.github.com/repos/${owner}/${repo}`;
+  const $ = (id) => document.getElementById(id);
+
+  const tz = { timeZone: "Europe/Istanbul" };
+  const fmtTime = (d) => new Date(d).toLocaleString("tr-TR", { ...tz, day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+  const fmtDur = (ms) => {
+    const m = Math.max(0, Math.round(ms / 60000));
+    if (m < 1) return "1 dakikadan az";
+    const h = Math.floor(m / 60), r = m % 60;
+    return h ? `${h} sa ${r} dk` : `${r} dk`;
+  };
+
+  function seatClass(run) {
+    if (run.status === "in_progress") return "in_progress";
+    if (run.status === "queued" || run.status === "waiting" || run.status === "pending") return "queued";
+    if (run.conclusion === "success") return "success";
+    if (run.conclusion === "cancelled" || run.conclusion === "skipped") return "cancelled";
+    return "failure";
+  }
+  const label = {
+    in_progress: "Çalışıyor", queued: "Sırada", success: "Sorunsuz bitti",
+    cancelled: "Atlandı", failure: "Hata verdi", found: "Film bulundu",
+  };
+  const dotColor = {
+    in_progress: "var(--brass)", queued: "transparent", success: "var(--ok)",
+    cancelled: "#4a2a33", failure: "var(--err)", found: "var(--screen)",
+  };
+
+  function setScreen(state, status, detail, ctaHtml = "") {
+    $("screen").dataset.state = state;
+    $("status").textContent = status;
+    $("detail").textContent = detail;
+    $("cta").innerHTML = ctaHtml;
+  }
+
+  function renderSeats(runs, foundRunId) {
+    const seats = $("seats");
+    seats.innerHTML = "";
+    const rows = "ABC";
+    for (let r = 0; r < 3; r++) {
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<span class="row-label">${rows[r]}</span>`;
+      for (let c = 0; c < 10; c++) {
+        const run = runs[r * 10 + c];
+        const el = document.createElement(run ? "a" : "span");
+        if (run) {
+          const cls = run.id === foundRunId ? "found" : seatClass(run);
+          el.className = `seat ${cls}`;
+          el.href = run.html_url;
+          el.target = "_blank";
+          el.rel = "noopener";
+          el.title = `#${run.run_number}: ${label[cls]} (${fmtTime(run.run_started_at || run.created_at)})`;
+          el.setAttribute("aria-label", el.title);
+        } else {
+          el.className = "seat empty";
+        }
+        row.appendChild(el);
+      }
+      row.insertAdjacentHTML("beforeend", `<span class="row-label">${rows[r]}</span>`);
+      seats.appendChild(row);
+    }
+  }
+
+  function renderList(runs, foundRunId) {
+    $("runs").innerHTML = runs.slice(0, 8).map((run) => {
+      const cls = run.id === foundRunId ? "found" : seatClass(run);
+      const start = run.run_started_at || run.created_at;
+      const end = run.status === "completed" ? new Date(run.updated_at) : new Date();
+      const dur = run.status === "queued" ? "başlamayı bekliyor" : `${fmtDur(end - new Date(start))}${run.status === "completed" ? " sürdü" : "dır sürüyor"}`;
+      const border = cls === "queued" ? "border:1.5px solid var(--brass)" : "";
+      return `<li>
+        <span class="run-title"><span class="dot" style="background:${dotColor[cls]};${border}"></span>${label[cls]}</span>
+        <span class="run-meta">#${run.run_number}, ${fmtTime(start)} başladı, ${dur}</span>
+        <a href="${run.html_url}" target="_blank" rel="noopener">Logları aç</a>
+      </li>`;
+    }).join("") || `<li><span class="run-meta">Henüz çalışma yok. İlk çalışma en geç 30 dakika içinde başlar.</span></li>`;
+  }
+
+  async function gh(path) {
+    const res = await fetch(API + path, { headers: { Accept: "application/vnd.github+json" } });
+    if (res.status === 404) return null;
+    if (res.status === 403 || res.status === 429) {
+      const reset = res.headers.get("x-ratelimit-reset");
+      const err = new Error("ratelimit");
+      err.reset = reset ? new Date(reset * 1000) : null;
+      throw err;
+    }
+    if (!res.ok) throw new Error(`GitHub ${res.status}`);
+    return res.json();
+  }
+
+  async function load() {
+    if (!owner || !repo) {
+      setScreen("error", "Repo bulunamadı", "Sayfayı GitHub Pages adresinden aç ya da adrese ?repo=kullanici/repo ekle.");
+      return;
+    }
+    $("repoLink").innerHTML = ` <a href="https://github.com/${owner}/${repo}/actions" target="_blank" rel="noopener">Tüm çalışmalar GitHub'da</a>`;
+    try {
+      const [runsRes, workflow, found] = await Promise.all([
+        gh(`/actions/workflows/${WORKFLOW}/runs?per_page=30`),
+        gh(`/actions/workflows/${WORKFLOW}`),
+        gh(`/contents/FOUND`),
+      ]);
+      const runs = runsRes?.workflow_runs ?? [];
+      let foundUrl = null, foundAt = null, foundRunId = null;
+      if (found?.content) {
+        const text = new TextDecoder().decode(Uint8Array.from(atob(found.content.replace(/\n/g, "")), (c) => c.charCodeAt(0)));
+        [foundAt, foundUrl] = text.trim().split("\n");
+        const t = new Date(foundAt).getTime();
+        foundRunId = runs.find((r) => new Date(r.run_started_at || r.created_at).getTime() <= t && (r.status !== "completed" || new Date(r.updated_at).getTime() >= t))?.id ?? null;
+      }
+
+      const live = runs.find((r) => r.status === "in_progress");
+      const queued = runs.find((r) => r.status === "queued" || r.status === "waiting" || r.status === "pending");
+      const last = runs[0];
+
+      if (foundUrl) {
+        setScreen("found", "Ön satış açıldı", `Film ${fmtTime(foundAt)} itibarıyla sitede.`,
+          `<a class="cta" href="${foundUrl}" target="_blank" rel="noopener">Film sayfasını aç</a>`);
+      } else if (workflow?.state && workflow.state !== "active") {
+        setScreen("off", "Takip kapalı", "Workflow devre dışı. GitHub'da Actions sekmesinden tekrar açabilirsin.");
+      } else if (live) {
+        setScreen("running", "Takipte", `Site 20-30 saniyede bir kontrol ediliyor. Bu çalışma ${fmtDur(Date.now() - new Date(live.run_started_at))}dır açık.`);
+      } else if (queued) {
+        setScreen("running", "Sırada", "Yeni çalışma birazdan başlayacak.");
+      } else if (last && seatClass(last) === "failure") {
+        setScreen("error", "Hata var", `Son çalışma ${fmtTime(last.updated_at)} saatinde hata verdi. Loglarına bak.`,
+          `<a class="cta" href="${last.html_url}" target="_blank" rel="noopener">Logları aç</a>`);
+      } else {
+        setScreen("running", "Beklemede", "Şu an çalışan yok, sıradaki en geç 30 dakika içinde başlar.");
+      }
+
+      renderSeats(runs, foundRunId);
+      renderList(runs, foundRunId);
+      $("note").innerHTML = "";
+      $("updated").textContent = `Son güncelleme ${new Date().toLocaleTimeString("tr-TR", { ...tz, hour: "2-digit", minute: "2-digit" })}. Sayfa 4 dakikada bir kendini yeniler.`;
+    } catch (e) {
+      if (e.message === "ratelimit") {
+        $("note").innerHTML = `<p class="note">GitHub kısa süreli istek sınırına ulaşıldı${e.reset ? `, ${e.reset.toLocaleTimeString("tr-TR", { ...tz, hour: "2-digit", minute: "2-digit" })} sonrası` : ""} tekrar dener. Takip bundan etkilenmez.</p>`;
+      } else {
+        $("note").innerHTML = `<p class="note">Durum alınamadı (${e.message}). İnternet bağlantını kontrol edip Yenile'ye bas.</p>`;
+      }
+    }
+  }
+
+  $("refresh").addEventListener("click", load);
+  load();
+  setInterval(load, REFRESH_MS);
+})();
+</script>
+</body>
+</html>
