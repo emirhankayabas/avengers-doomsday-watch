@@ -20,6 +20,8 @@ if (!TG_TOKEN || !TG_CHAT || !NTFY_TOPIC) {
   console.error("TG_TOKEN, TG_CHAT ve NTFY_TOPIC tanımlı olmalı (.env ya da GitHub Secrets).");
   process.exit(1);
 }
+// Birden fazla kişi: TG_CHAT=111,222
+const TG_CHATS = TG_CHAT.split(",").map((s) => s.trim()).filter(Boolean);
 
 // GitHub Actions'ta her çalışma bu kadar dakika kontrol eder, sonra yerini bir sonrakine bırakır.
 // Yerelde tanımlanmazsa sınırsız çalışır.
@@ -51,20 +53,24 @@ const tg = (method, body = {}) =>
     body: JSON.stringify(body),
   });
 
-const sendText = async (text) => {
-  const res = await tg("sendMessage", { chat_id: TG_CHAT, text });
-  if (!res.ok) console.error("Telegram hatası:", await res.text());
+const sendOne = async (chat_id, text) => {
+  const res = await tg("sendMessage", { chat_id, text });
+  if (!res.ok) console.error(`Telegram hatası (${chat_id}):`, await res.text());
 };
+const sendText = (text) => Promise.all(TG_CHATS.map((id) => sendOne(id, text)));
 
 // Poster varsa resimli gönder, olmazsa düz mesaja düş
-const notify = async (text, poster) => {
-  if (poster) {
-    const res = await tg("sendPhoto", { chat_id: TG_CHAT, photo: poster, caption: text });
-    if (res.ok) return;
-    console.error("Poster gönderilemedi, düz mesaj atılıyor:", await res.text());
-  }
-  await sendText(text);
-};
+const notify = (text, poster) =>
+  Promise.all(
+    TG_CHATS.map(async (chat_id) => {
+      if (poster) {
+        const res = await tg("sendPhoto", { chat_id, photo: poster, caption: text });
+        if (res.ok) return;
+        console.error(`Poster gönderilemedi (${chat_id}), düz mesaj atılıyor:`, await res.text());
+      }
+      await sendOne(chat_id, text);
+    })
+  );
 
 // ntfy acil bildirimi (ücretsiz, hesap gerekmez)
 const urgent = async (title, message, click, attach) => {
@@ -99,12 +105,14 @@ const lastUpdateId = async () => {
   }
 };
 
+// Listeden herhangi biri yazarsa onun adını döndürür
 const userReplied = async (afterId) => {
   try {
     const j = await (await tg("getUpdates", { offset: afterId + 1, timeout: 0 })).json();
-    return (j.result ?? []).some((u) => String(u.message?.chat?.id) === TG_CHAT);
+    const u = (j.result ?? []).find((u) => TG_CHATS.includes(String(u.message?.chat?.id)));
+    return u ? u.message.from?.first_name || "Biri" : null;
   } catch {
-    return false;
+    return null;
   }
 };
 
@@ -160,8 +168,9 @@ async function alarm(msg, poster, filmUrl) {
   let count = 1;
   while (Date.now() - started < REMIND_MAX) {
     await sleep(REMIND_EVERY);
-    if (await userReplied(startId)) {
-      await sendText("Tamam, hatırlatmaları durdurdum. Bol şans!");
+    const who = await userReplied(startId);
+    if (who) {
+      await sendText(`${who} gördü, hatırlatmaları durdurdum. Bol şans!`);
       console.log(now(), "Kullanıcı gördü, durduruldu.");
       return;
     }
