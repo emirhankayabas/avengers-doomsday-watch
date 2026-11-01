@@ -1,0 +1,55 @@
+name: Avengers Doomsday Watch
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # her 30 dk tetiklenir; biri çalışırken yenisi sırada bekler
+  workflow_dispatch:
+
+permissions:
+  contents: write   # bulununca FOUND dosyasını commitlemek için
+  actions: write    # bulununca workflow'u kapatmak için
+
+concurrency:
+  group: doomsday-watch
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Daha önce bulundu mu?
+        id: check
+        run: |
+          if [ -f FOUND ]; then
+            echo "Film zaten bulunmuş, çalışma atlanıyor."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          node-version: 20
+
+      - name: Siteyi takip et
+        if: steps.check.outputs.skip != 'true'
+        env:
+          TG_TOKEN: ${{ secrets.TG_TOKEN }}
+          TG_CHAT: ${{ secrets.TG_CHAT }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          MAX_RUNTIME_MIN: "220"   # ~3.5 saat kontrol + bulunursa 2 saate kadar hatırlatma
+        run: node avengers-watch.mjs
+
+      - name: Bulunduysa kaydet ve takibi kapat
+        if: always() && steps.check.outputs.skip != 'true' && hashFiles('FOUND') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add FOUND
+          git commit -m "Avengers: Doomsday bulundu"
+          git push
+          gh workflow disable "${{ github.workflow }}"
